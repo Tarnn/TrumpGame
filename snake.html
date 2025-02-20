@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agency Snake Game</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #1a1a1a;
+      }
+
+      #game-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      #background-flag {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("images/america.svg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0.1;
+        z-index: 0;
+      }
+
+      #game-board {
+        display: grid;
+        grid-template-columns: repeat(20, 1fr);
+        grid-template-rows: repeat(20, 1fr);
+        width: calc(100vmin - 40px);
+        height: calc(100vmin - 40px);
+        background-color: #333;
+        max-width: 100%;
+        max-height: 100%;
+        border: 1px solid #555;
+        position: relative;
+        z-index: 1;
+      }
+
+      .cell {
+        border: 1px solid #555;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.8em;
+      }
+
+      .snake-head {
+        background-color: #ff9500;
+        color: #fff;
+        font-weight: bold;
+      }
+
+      .snake-body {
+        background-image: url("images/america.svg");
+        background-size: cover;
+      }
+
+      .snake-body-grow {
+        animation: grow 0.3s ease-in-out;
+      }
+
+      @keyframes grow {
+        0% { transform: scale(0); }
+        100% { transform: scale(1); }
+      }
+
+      .enemy-can {
+        background-color: transparent;
+        color: #fff;
+      }
+
+      .enemy-eaten {
+        animation: fadeOut 0.3s ease-out forwards;
+      }
+
+      @keyframes fadeOut {
+        0% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0; transform: scale(0.5); }
+      }
+
+      #score-container {
+        position: absolute;
+        top: 50%;
+        left: 20px;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        z-index: 2;
+      }
+
+      #score {
+        font-size: 2.5em;
+        color: #fff;
+      }
+
+      #countdown {
+        font-size: 1.5em;
+        color: #aaa;
+      }
+
+      #instructions {
+        font-size: 1.2em;
+        color: #aaa;
+      }
+
+      .score-update {
+        animation: scorePulse 0.3s ease-in-out;
+      }
+
+      @keyframes scorePulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+
+      #game-over-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 2;
+      }
+
+      #game-over {
+        font-size: 3em;
+        color: #ff5555;
+      }
+
+      #restart-text {
+        font-size: 1.5em;
+        color: #aaa;
+        display: none;
+      }
+
+      #fight-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 5em;
+        text-shadow: 2px 2px 4px #000;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .fight-flash {
+        animation: flashColors 1.5s ease-in-out forwards;
+      }
+
+      @keyframes flashColors {
+        0% { opacity: 1; color: #ff5555; }
+        33% { opacity: 1; color: #fff; }
+        66% { opacity: 1; color: #5555ff; }
+        100% { opacity: 0; color: #5555ff; }
+      }
+
+      #victory-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 4em;
+        color: #ffd700;
+        text-shadow: 2px 2px 4px #000;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .victory-animation {
+        animation: victoryFade 2s ease-in-out forwards;
+      }
+
+      @keyframes victoryFade {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <div id="background-flag"></div>
+      <div id="game-board"></div>
+      <div id="score-container">
+        <div id="score">Score: 0</div>
+        <div id="countdown">510 is required to annex Canada</div>
+        <div id="instructions">Press W, A, S, D to move</div>
+      </div>
+      <div id="game-over-container">
+        <div id="game-over" style="display: none">GAME OVER, No 51st State</div>
+        <div id="restart-text">Press Enter to Restart</div>
+      </div>
+      <div id="fight-text">Fight Fight Fight!</div>
+      <div id="victory-text">Canada has been acquired!</div>
+    </div>
+    <audio id="background-music" autoplay loop>
+      <source src="audio/Trump_speech.mp3" type="audio/mpeg">
+      Your browser does not support the audio element.
+    </audio>
+    <audio id="fight-sound">
+      <source src="audio/usa_chant.mp3" type="audio/mpeg">
+      Your browser does not support the audio element.
+    </audio>
+    <audio id="game-over-music">
+      <source src="audio/canada_anthem.mp3" type="audio/mpeg">
+      Your browser does not support the audio element.
+    </audio>
+    <script>
+      const gridSize = 20;
+      const totalCells = gridSize * gridSize;
+      const gameBoard = document.getElementById("game-board");
+      const agencies = [{ name: "CAN", class: "enemy-can" }];
+      const REQUIRED_AGENCIES = 510;
+
+      const agencyImageMap = {
+        CAN: "images/canada.png",
+      };
+
+      let snake;
+      let snakeSet;
+      let direction;
+      let currentEnemy;
+      let score;
+      let gameInterval;
+      let agenciesEaten = 0;
+
+      const backgroundAudio = document.getElementById("background-music");
+      const fightAudio = document.getElementById("fight-sound");
+      const gameOverAudio = document.getElementById("game-over-music");
+
+      backgroundAudio.muted = false;
+      window.addEventListener("load", () => {
+        backgroundAudio.play().catch((error) => {
+          console.log("Autoplay blocked:", error);
+          document.addEventListener(
+            "keydown",
+            () => {
+              backgroundAudio.play().catch((err) => console.log("Playback failed:", err));
+            },
+            { once: true }
+          );
+        });
+      });
+
+      for (let i = 0; i < totalCells; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        gameBoard.appendChild(cell);
+      }
+
+      function startGame() {
+        snake = [
+          { row: 9, col: 9 },
+          { row: 9, col: 10 },
+          { row: 9, col: 11 },
+        ];
+        snakeSet = new Set(snake.map((pos) => `${pos.row}_${pos.col}`));
+        direction = "right";
+        score = 0;
+        agenciesEaten = 0;
+        updateScore();
+        document.getElementById("game-over").style.display = "none";
+        document.getElementById("restart-text").style.display = "none";
+        document.getElementById("victory-text").style.display = "none";
+        backgroundAudio.play();
+        gameOverAudio.pause();
+        gameOverAudio.currentTime = 0; // Reset anthem to start
+        spawnEnemy();
+        render();
+        gameInterval = setInterval(move, 200);
+      }
+
+      function updateScore() {
+        const scoreElement = document.getElementById("score");
+        const countdownElement = document.getElementById("countdown");
+        scoreElement.innerText = `Score: ${score}`;
+        const remaining = REQUIRED_AGENCIES - agenciesEaten;
+        countdownElement.innerText = `${remaining} more to annex Canada`;
+        scoreElement.classList.remove("score-update");
+        void scoreElement.offsetWidth;
+        scoreElement.classList.add("score-update");
+      }
+
+      function spawnEnemy() {
+        const agency = agencies[Math.floor(Math.random() * agencies.length)];
+        const position = getRandomPosition();
+        currentEnemy = {
+          ...position,
+          agency: agency.name,
+          class: agency.class,
+        };
+      }
+
+      function getRandomPosition() {
+        let row, col;
+        do {
+          row = Math.floor(Math.random() * gridSize);
+          col = Math.floor(Math.random() * gridSize);
+        } while (snakeSet.has(`${row}_${col}`));
+        return { row, col };
+      }
+
+      function move() {
+        const head = snake[snake.length - 1];
+        const delta = directionMap[direction];
+        const newHead = {
+          row: head.row + delta.row,
+          col: head.col + delta.col,
+        };
+
+        if (
+          newHead.row < 0 ||
+          newHead.row >= gridSize ||
+          newHead.col < 0 ||
+          newHead.col >= gridSize
+        ) {
+          gameOver();
+          return;
+        }
+
+        if (snakeSet.has(`${newHead.row}_${newHead.col}`)) {
+          gameOver();
+          return;
+        }
+
+        snake.push(newHead);
+        snakeSet.add(`${newHead.row}_${newHead.col}`);
+
+        if (
+          newHead.row === currentEnemy.row &&
+          newHead.col === currentEnemy.col
+        ) {
+          score += 10;
+          agenciesEaten += 1;
+          updateScore();
+          animateEnemyEaten(() => {
+            spawnEnemy();
+            render(true);
+            if (agenciesEaten % 3 === 0) {
+              showFightText();
+            }
+            if (score >= REQUIRED_AGENCIES * 10) {
+              victory();
+            }
+          });
+        } else {
+          const tail = snake.shift();
+          snakeSet.delete(`${tail.row}_${tail.col}`);
+          render();
+        }
+      }
+
+      function animateEnemyEaten(callback) {
+        const index = currentEnemy.row * gridSize + currentEnemy.col;
+        const cell = gameBoard.children[index];
+        cell.classList.add("enemy-eaten");
+        cell.addEventListener(
+          "animationend",
+          () => {
+            cell.classList.remove("enemy-eaten");
+            callback();
+          },
+          { once: true }
+        );
+      }
+
+      function showFightText() {
+        const fightText = document.getElementById("fight-text");
+        fightText.classList.remove("fight-flash");
+        void fightText.offsetWidth;
+        fightText.classList.add("fight-flash");
+        fightAudio.currentTime = 0;
+        fightAudio.play().catch((error) => console.log("Fight audio play failed:", error));
+      }
+
+      function victory() {
+        clearInterval(gameInterval);
+        const victoryText = document.getElementById("victory-text");
+        victoryText.style.display = "block";
+        victoryText.classList.remove("victory-animation");
+        void victoryText.offsetWidth;
+        victoryText.classList.add("victory-animation");
+        document.addEventListener("keydown", restartOnEnter);
+      }
+
+      function gameOver() {
+        clearInterval(gameInterval);
+        document.getElementById("game-over").style.display = "block";
+        document.getElementById("restart-text").style.display = "block";
+        backgroundAudio.pause(); // Pause original background music
+        gameOverAudio.currentTime = 0; // Reset anthem to start
+        gameOverAudio.play().catch((error) => console.log("Game over audio play failed:", error));
+        document.addEventListener("keydown", restartOnEnter);
+      }
+
+      const directionMap = {
+        up: { row: -1, col: 0 },
+        down: { row: 1, col: 0 },
+        left: { row: 0, col: -1 },
+        right: { row: 0, col: 1 },
+      };
+
+      function render(isGrowth = false) {
+        Array.from(gameBoard.children).forEach((cell) => {
+          cell.classList.remove("snake-head", "snake-body", "snake-body-grow");
+          cell.classList.remove(...agencies.map((a) => a.class));
+          cell.innerText = "";
+          cell.style.backgroundImage = "";
+        });
+
+        snake.forEach((pos, index) => {
+          const indexPos = pos.row * gridSize + pos.col;
+          const cell = gameBoard.children[indexPos];
+          if (index === snake.length - 1) {
+            cell.classList.add("snake-head");
+            cell.innerText = "T";
+            cell.style.backgroundImage = "url('images/trump_face.png')";
+            cell.style.backgroundSize = "cover";
+            cell.innerText = "";
+          } else {
+            cell.classList.add("snake-body");
+            if (isGrowth && index === snake.length - 2) {
+              cell.classList.add("snake-body-grow");
+            }
+          }
+        });
+
+        if (currentEnemy && !document.querySelector(".enemy-eaten")) {
+          const index = currentEnemy.row * gridSize + currentEnemy.col;
+          const cell = gameBoard.children[index];
+          cell.classList.add(currentEnemy.class);
+          cell.innerText = currentEnemy.agency;
+          cell.style.backgroundImage = `url('${
+            agencyImageMap[currentEnemy.agency]
+          }')`;
+          cell.style.backgroundSize = "cover";
+          cell.innerText = "";
+        }
+      }
+
+      function restartOnEnter(event) {
+        if (event.key === "Enter") {
+          document.removeEventListener("keydown", restartOnEnter);
+          startGame();
+        }
+      }
+
+      document.addEventListener("keydown", (event) => {
+        switch (event.key) {
+          case "w":
+            if (direction !== "down") direction = "up";
+            break;
+          case "s":
+            if (direction !== "up") direction = "down";
+            break;
+          case "a":
+            if (direction !== "right") direction = "left";
+            break;
+          case "d":
+            if (direction !== "left") direction = "right";
+            break;
+        }
+      });
+
+      startGame();
+    </script>
+  </body>
+</html>
