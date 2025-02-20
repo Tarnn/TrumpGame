@@ -294,7 +294,7 @@
         const scoreElement = document.getElementById("score");
         const countdownElement = document.getElementById("countdown");
         scoreElement.innerText = `Score: ${score}`;
-        const remaining = REQUIRED_AGENCIES - agenciesEaten;
+        const remaining = REQUIRED_AGENCIES - score;
         countdownElement.innerText = `${remaining} more to annex Canada`;
         scoreElement.classList.remove("score-update");
         void scoreElement.offsetWidth;
